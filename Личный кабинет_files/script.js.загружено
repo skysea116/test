@@ -1,0 +1,678 @@
+﻿// v0.8 02.12.2022
+// Обновленный дизайн
+
+// v0.7 30.11.2022
+// Legal формулировки
+// Новый теглайн
+
+// v0.71 04.08.2023
+// Дополнен preparePrice
+
+class PodeliWidget {
+  constructor() {
+    this.widgetAjaxUrl =
+      "/bitrix/tools/podeli_sale_basket_result.php?type=widget";
+    this.selectedPaySystemId = 0;
+    this.widgetContainerNodeSelector = "#bx-soa-paysystem";
+    this.widgetCustomClass = "";
+    this.widgetClass = "podeli_widget";
+    this.priceNodeSelector = "";
+    this.containerNodeSelector = "";
+    this.insertMethod = "append";
+    this.discount;
+    this.canIRender = false;
+    this.type = "";
+    this.initialized = false;
+    this.paySystemId = null;
+    this.widgetCssClass = "";
+    this.price = 0;
+    this.showWidget = false;
+    this.logoHtml = `<svg class="static" width="119" height="20" viewBox="0 0 182 30" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M23.6695 28.3629C23.6695 19.2459 23.6695 10.1889 23.6695 1.13794C16.0709 1.13794 8.53846 1.13794 1 1.13794C1 10.246 1 19.2819 1 28.3419C2.23986 28.3419 3.4406 28.3419 4.72259 28.3419C4.72259 20.3423 4.72259 12.4148 4.72259 4.47235C9.84754 4.47235 14.8882 4.47235 20.0192 4.47235C20.0192 12.4569 20.0192 20.3814 20.0192 28.3599C21.2651 28.3629 22.4207 28.3629 23.6695 28.3629Z" fill="#EE3124" stroke="#EE3124" stroke-width="0.3"/><path d="M89.2387 24.9654L79.4221 2.97329C78.9256 1.85882 77.8151 1.14087 76.5933 1.14087C75.3715 1.14087 74.2611 1.85882 73.7645 2.97329L63.948 24.9654H60.6016V28.3629H92.5821V24.9654H89.2387ZM76.5933 5.22928L85.1971 24.9654H67.9896L76.5933 5.22928Z" fill="#EE3124" stroke="#EE3124" stroke-width="0.3"/>
+    <path d="M152.072 28.3629L141.338 2.98831C140.862 1.86783 139.764 1.14087 138.545 1.14087C137.326 1.14087 136.228 1.86783 135.752 2.98831L125.018 28.3629H129.06L138.545 5.44556L148.031 28.3629H152.072Z" fill="#EE3124" stroke="#EE3124" stroke-width="0.3"/><path d="M177.34 1.13794H177.274L161.006 23.1751V1.13794H157.346V28.1316V28.3629H161.006L177.34 6.23868V28.3629H181V1.28213V1.13794H177.34Z" fill="#EE3124" stroke="#EE3124" stroke-width="0.3"/><path d="M108.669 25.4911C106.049 25.491 103.518 24.5359 101.553 22.8052C99.5885 21.0744 98.3242 18.6872 97.9979 16.0917H122.976C123.018 15.6501 123.039 15.1905 123.039 14.752C123.039 14.0481 122.986 13.3453 122.882 12.6492C122.378 9.24776 120.665 6.14083 118.056 3.89527C115.447 1.64971 112.117 0.415205 108.672 0.416994C104.864 0.416994 101.212 1.92696 98.5197 4.61473C95.8271 7.30249 94.3145 10.9479 94.3145 14.7489C94.3145 18.55 95.8271 22.1954 98.5197 24.8832C101.212 27.5709 104.864 29.0809 108.672 29.0809C111.506 29.0786 114.275 28.2389 116.632 26.6678C118.988 25.0966 120.826 22.8643 121.913 20.2522H117.905C116.952 21.8496 115.6 23.1724 113.981 24.0909C112.362 25.0093 110.531 25.4918 108.669 25.4911ZM108.669 4.01275C111.157 4.01261 113.568 4.87311 115.492 6.44776C117.415 8.02242 118.733 10.2139 119.22 12.6492H98.1213C98.6108 10.2158 99.9293 8.02675 101.853 6.45397C103.776 4.8812 106.186 4.01276 108.672 4.01275H108.669Z" fill="#EE3124" stroke="#EE3124" stroke-width="0.3"/><path d="M44.5569 0.416992C36.6272 0.416992 30.1992 6.83348 30.1992 14.7489C30.1992 22.6644 36.6272 29.0809 44.5569 29.0809C52.4866 29.0809 58.9146 22.6644 58.9146 14.7489C58.9146 6.83348 52.4866 0.416992 44.5569 0.416992ZM44.5569 25.4881C38.6164 25.4881 33.7984 20.6788 33.7984 14.7489C33.7984 8.8191 38.6164 4.00974 44.5569 4.00974C50.4974 4.00974 55.3154 8.8191 55.3154 14.7489C55.3154 20.6788 50.4974 25.4881 44.5569 25.4881Z" fill="#EE3124" stroke="#EE3124" stroke-width="0.3"/><path d="M44.5537 2.34238C44.5537 3.22856 45.2007 3.99157 46.0825 4.11773C50.8012 4.78762 54.5328 8.51255 55.2039 13.2228C55.3302 14.1029 56.0946 14.7488 56.9824 14.7488C58.0688 14.7488 58.9204 13.7935 58.7669 12.7181C57.8732 6.42778 52.8866 1.4502 46.585 0.558025C45.5107 0.407826 44.5537 1.25795 44.5537 2.34238Z" fill="black" stroke="black" stroke-width="0.3"/></svg>`;
+    this.popUpHtml = `
+        <div class="popup__content">        
+            <div class="popup__body">
+                <div class="popup__row">
+                    <div class="close_widget"></div>
+                    <div class="popup__logo">
+                        <img src="/bitrix/images/podeli.bnpl/logo.svg" alt="logo">
+                    </div>
+                    <div class="popup__title">Оплатите сейчас<br/>только 25% стоимости покупки</div>
+                    <div class="popup__subtitle">Остальное — тремя платежами раз в две недели</div>
+                </div>
+                <div class="popup__row payment">
+                    <div class="payment__list">
+                        <div class="payment__item">
+                            <div class="payment__icon">
+                              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path fill-rule="evenodd" clip-rule="evenodd" d="M14 25.2C20.1856 25.2 25.2 20.1856 25.2 14C25.2 7.81441 20.1856 2.8 14 2.8C7.81441 2.8 2.8 7.81441 2.8 14C2.8 20.1856 7.81441 25.2 14 25.2ZM14 28C21.732 28 28 21.732 28 14C28 6.26801 21.732 0 14 0C6.26801 0 0 6.26801 0 14C0 21.732 6.26801 28 14 28Z" fill="#E8E8E8"/>
+                              <path d="M26.6023 14C27.3742 14 28.0072 13.3727 27.9303 12.6046C27.7941 11.2448 27.4592 9.90968 26.9343 8.64243C26.2307 6.94387 25.1995 5.40052 23.8995 4.1005C22.5995 2.80048 21.0561 1.76925 19.3576 1.06569C18.0903 0.540774 16.7552 0.20592 15.3953 0.0697084C14.6273 -0.00722613 14 0.625753 14 1.39766C14 2.16956 14.6281 2.78634 15.394 2.88238C16.3865 3.00682 17.3599 3.26386 18.2878 3.64822C19.6473 4.21131 20.8825 5.03664 21.9229 6.07709C22.9634 7.11754 23.7887 8.35274 24.3518 9.71215C24.7361 10.6401 24.9932 11.6135 25.1176 12.606C25.2137 13.3719 25.8304 14 26.6023 14Z" fill="black"/>
+                              </svg>                            
+                            </div>
+                            <div class="payment__title">25%</div>
+                            <div class="payment__subtitle">Платеж сегодня</div>
+                        </div>
+                        <div class="payment__item">
+                            <div class="payment__icon">
+                              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path fill-rule="evenodd" clip-rule="evenodd" d="M14 25.2C20.1856 25.2 25.2 20.1856 25.2 14C25.2 7.81441 20.1856 2.8 14 2.8C7.81441 2.8 2.8 7.81441 2.8 14C2.8 20.1856 7.81441 25.2 14 25.2ZM14 28C21.732 28 28 21.732 28 14C28 6.26801 21.732 0 14 0C6.26801 0 0 6.26801 0 14C0 21.732 6.26801 28 14 28Z" fill="#E8E8E8"/>
+                              <path d="M14 26.6023C14 27.3742 14.6273 28.0072 15.3954 27.9303C16.7552 27.7941 18.0903 27.4592 19.3576 26.9343C21.0561 26.2307 22.5995 25.1995 23.8995 23.8995C25.1995 22.5995 26.2307 21.0561 26.9343 19.3576C27.6379 17.659 28 15.8385 28 14C28 12.1615 27.6379 10.341 26.9343 8.64243C26.2307 6.94387 25.1995 5.40052 23.8995 4.1005C22.5995 2.80048 21.0561 1.76925 19.3576 1.06569C18.0903 0.540774 16.7552 0.205919 15.3953 0.0697084C14.6273 -0.00722601 14 0.625753 14 1.39766C14 2.16956 14.6281 2.78634 15.394 2.88238C16.3865 3.00682 17.3599 3.26386 18.2878 3.64822C19.6473 4.21131 20.8825 5.03664 21.9229 6.07709C22.9634 7.11754 23.7887 8.35274 24.3518 9.71215C24.9149 11.0716 25.2047 12.5286 25.2047 14C25.2047 15.4714 24.9149 16.9284 24.3518 18.2878C23.7887 19.6473 22.9634 20.8825 21.9229 21.9229C20.8825 22.9634 19.6473 23.7887 18.2878 24.3518C17.3599 24.7361 16.3865 24.9932 15.394 25.1176C14.6281 25.2137 14 25.8304 14 26.6023Z" fill="#FF0001"/>
+                              <path d="M26.6023 14C27.3742 14 28.0072 13.3727 27.9303 12.6046C27.7941 11.2448 27.4592 9.90968 26.9343 8.64243C26.2307 6.94387 25.1995 5.40052 23.8995 4.1005C22.5995 2.80048 21.0561 1.76925 19.3576 1.06569C18.0903 0.540774 16.7552 0.20592 15.3953 0.0697084C14.6273 -0.00722613 14 0.625753 14 1.39766C14 2.16956 14.6281 2.78634 15.394 2.88238C16.3865 3.00682 17.3599 3.26386 18.2878 3.64822C19.6473 4.21131 20.8825 5.03664 21.9229 6.07709C22.9634 7.11754 23.7887 8.35274 24.3518 9.71215C24.7361 10.6401 24.9932 11.6135 25.1176 12.606C25.2137 13.3719 25.8304 14 26.6023 14Z" fill="black"/>
+                              </svg>                            
+                            </div>
+                            <div class="payment__title">25%</div>
+                            <div class="payment__subtitle">Через 2 недели</div>
+                        </div>
+                        <div class="payment__item">
+                            <div class="payment__icon">
+                              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path fill-rule="evenodd" clip-rule="evenodd" d="M14 25.2C20.1856 25.2 25.2 20.1856 25.2 14C25.2 7.81441 20.1856 2.8 14 2.8C7.81441 2.8 2.8 7.81441 2.8 14C2.8 20.1856 7.81441 25.2 14 25.2ZM14 28C21.732 28 28 21.732 28 14C28 6.26801 21.732 0 14 0C6.26801 0 0 6.26801 0 14C0 21.732 6.26801 28 14 28Z" fill="#E8E8E8"/>
+                              <path d="M1.39766 14C0.625757 14 -0.00722577 14.6273 0.0697071 15.3954C0.297675 17.6713 1.08079 19.8644 2.35943 21.778C3.89777 24.0803 6.08427 25.8747 8.64243 26.9343C11.2006 27.9939 14.0155 28.2712 16.7313 27.731C19.447 27.1908 21.9416 25.8574 23.8995 23.8995C25.8574 21.9416 27.1908 19.447 27.731 16.7313C28.2712 14.0155 27.9939 11.2006 26.9343 8.64243C25.8747 6.08427 24.0803 3.89777 21.778 2.35943C19.8644 1.08079 17.6713 0.297673 15.3954 0.0697049C14.6273 -0.00722811 14 0.625754 14 1.39766C14 2.16957 14.6282 2.78633 15.3941 2.88237C17.1162 3.09831 18.7713 3.71234 20.225 4.68365C22.0676 5.91484 23.5037 7.66477 24.3518 9.71216C25.1998 11.7595 25.4217 14.0124 24.9894 16.1859C24.5571 18.3594 23.4899 20.3559 21.9229 21.9229C20.3559 23.4899 18.3594 24.5571 16.1859 24.9894C14.0124 25.4217 11.7595 25.1998 9.71216 24.3518C7.66477 23.5037 5.91484 22.0676 4.68365 20.225C3.71234 18.7713 3.09832 17.1162 2.88237 15.3941C2.78633 14.6282 2.16957 14 1.39766 14Z" fill="#FF0001"/>
+                              <path d="M14 26.6023C14 27.3742 14.6273 28.0072 15.3954 27.9303C16.7552 27.7941 18.0903 27.4592 19.3576 26.9343C21.0561 26.2307 22.5995 25.1995 23.8995 23.8995C25.1995 22.5995 26.2307 21.0561 26.9343 19.3576C27.6379 17.659 28 15.8385 28 14C28 12.1615 27.6379 10.341 26.9343 8.64243C26.2307 6.94387 25.1995 5.40052 23.8995 4.1005C22.5995 2.80048 21.0561 1.76925 19.3576 1.06569C18.0903 0.540774 16.7552 0.205919 15.3953 0.0697084C14.6273 -0.00722601 14 0.625753 14 1.39766C14 2.16956 14.6281 2.78634 15.394 2.88238C16.3865 3.00682 17.3599 3.26386 18.2878 3.64822C19.6473 4.21131 20.8825 5.03664 21.9229 6.07709C22.9634 7.11754 23.7887 8.35274 24.3518 9.71215C24.9149 11.0716 25.2047 12.5286 25.2047 14C25.2047 15.4714 24.9149 16.9284 24.3518 18.2878C23.7887 19.6473 22.9634 20.8825 21.9229 21.9229C20.8825 22.9634 19.6473 23.7887 18.2878 24.3518C17.3599 24.7361 16.3865 24.9932 15.394 25.1176C14.6281 25.2137 14 25.8304 14 26.6023Z" fill="#FF0001"/>
+                              <path d="M26.6023 14C27.3742 14 28.0072 13.3727 27.9303 12.6046C27.7941 11.2448 27.4592 9.90968 26.9343 8.64243C26.2307 6.94387 25.1995 5.40052 23.8995 4.1005C22.5995 2.80048 21.0561 1.76925 19.3576 1.06569C18.0903 0.540774 16.7552 0.20592 15.3953 0.0697084C14.6273 -0.00722613 14 0.625753 14 1.39766C14 2.16956 14.6281 2.78634 15.394 2.88238C16.3865 3.00682 17.3599 3.26386 18.2878 3.64822C19.6473 4.21131 20.8825 5.03664 21.9229 6.07709C22.9634 7.11754 23.7887 8.35274 24.3518 9.71215C24.7361 10.6401 24.9932 11.6135 25.1176 12.606C25.2137 13.3719 25.8304 14 26.6023 14Z" fill="black"/>
+                              </svg>                            
+                            </div>
+                            <div class="payment__title">25%</div>
+                            <div class="payment__subtitle">Через 4 недели</div>
+                        </div>
+                        <div class="payment__item">
+                            <div class="payment__icon">
+                              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path fill-rule="evenodd" clip-rule="evenodd" d="M14 25.2C20.1856 25.2 25.2 20.1856 25.2 14C25.2 7.81441 20.1856 2.8 14 2.8C7.81441 2.8 2.8 7.81441 2.8 14C2.8 20.1856 7.81441 25.2 14 25.2ZM14 28C21.732 28 28 21.732 28 14C28 6.26801 21.732 0 14 0C6.26801 0 0 6.26801 0 14C0 21.732 6.26801 28 14 28Z" fill="#FF0001"/>
+                              <path d="M1.39766 14C0.625757 14 -0.00722577 14.6273 0.0697071 15.3954C0.297675 17.6713 1.08079 19.8644 2.35943 21.778C3.89777 24.0803 6.08427 25.8747 8.64243 26.9343C11.2006 27.9939 14.0155 28.2712 16.7313 27.731C19.447 27.1908 21.9416 25.8574 23.8995 23.8995C25.8574 21.9416 27.1908 19.447 27.731 16.7313C28.2712 14.0155 27.9939 11.2006 26.9343 8.64243C25.8747 6.08427 24.0803 3.89777 21.778 2.35943C19.8644 1.08079 17.6713 0.297673 15.3954 0.0697049C14.6273 -0.00722811 14 0.625754 14 1.39766C14 2.16957 14.6282 2.78633 15.3941 2.88237C17.1162 3.09831 18.7713 3.71234 20.225 4.68365C22.0676 5.91484 23.5037 7.66477 24.3518 9.71216C25.1998 11.7595 25.4217 14.0124 24.9894 16.1859C24.5571 18.3594 23.4899 20.3559 21.9229 21.9229C20.3559 23.4899 18.3594 24.5571 16.1859 24.9894C14.0124 25.4217 11.7595 25.1998 9.71216 24.3518C7.66477 23.5037 5.91484 22.0676 4.68365 20.225C3.71234 18.7713 3.09832 17.1162 2.88237 15.3941C2.78633 14.6282 2.16957 14 1.39766 14Z" fill="#FF0001"/>
+                              <path d="M14 26.6023C14 27.3742 14.6273 28.0072 15.3954 27.9303C16.7552 27.7941 18.0903 27.4592 19.3576 26.9343C21.0561 26.2307 22.5995 25.1995 23.8995 23.8995C25.1995 22.5995 26.2307 21.0561 26.9343 19.3576C27.6379 17.659 28 15.8385 28 14C28 12.1615 27.6379 10.341 26.9343 8.64243C26.2307 6.94387 25.1995 5.40052 23.8995 4.1005C22.5995 2.80048 21.0561 1.76925 19.3576 1.06569C18.0903 0.540774 16.7552 0.205919 15.3953 0.0697084C14.6273 -0.00722601 14 0.625753 14 1.39766C14 2.16956 14.6281 2.78634 15.394 2.88238C16.3865 3.00682 17.3599 3.26386 18.2878 3.64822C19.6473 4.21131 20.8825 5.03664 21.9229 6.07709C22.9634 7.11754 23.7887 8.35274 24.3518 9.71215C24.9149 11.0716 25.2047 12.5286 25.2047 14C25.2047 15.4714 24.9149 16.9284 24.3518 18.2878C23.7887 19.6473 22.9634 20.8825 21.9229 21.9229C20.8825 22.9634 19.6473 23.7887 18.2878 24.3518C17.3599 24.7361 16.3865 24.9932 15.394 25.1176C14.6281 25.2137 14 25.8304 14 26.6023Z" fill="#FF0001"/>
+                              <path d="M26.6023 14C27.3742 14 28.0072 13.3727 27.9303 12.6046C27.7941 11.2448 27.4592 9.90968 26.9343 8.64243C26.2307 6.94387 25.1995 5.40052 23.8995 4.1005C22.5995 2.80048 21.0561 1.76925 19.3576 1.06569C18.0903 0.540774 16.7552 0.20592 15.3953 0.0697084C14.6273 -0.00722613 14 0.625753 14 1.39766C14 2.16956 14.6281 2.78634 15.394 2.88238C16.3865 3.00682 17.3599 3.26386 18.2878 3.64822C19.6473 4.21131 20.8825 5.03664 21.9229 6.07709C22.9634 7.11754 23.7887 8.35274 24.3518 9.71215C24.7361 10.6401 24.9932 11.6135 25.1176 12.606C25.2137 13.3719 25.8304 14 26.6023 14Z" fill="black"/>
+                              <path d="M10.0526 13.7357L12.9141 16.5973L18.6475 10.8741" stroke="#FF0001" stroke-width="2.65431" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>                            
+                            </div>
+                            <div class="payment__title">25%</div>
+                            <div class="payment__subtitle">Через 6 недель</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="popup__row">
+                    <div class="popup__info">Это бесплатно. Никаких дополнительных платежей и&nbsp;процентов — как
+                        обычная оплата картой</div>
+                </div>
+                <div class="popup__row">
+                    <div class="popup__more"> Подробнее на <a href="https://podeli.ru" target="_blank"
+                            class="popup__more-link">podeli.ru</a> </div>
+                    <div class="popup__footer-text">ООО А-4 Технологии, ОГРН 1227700064734<br/>115432, Россия, г. Москва, пр. Андропова, д.18, к. 3, этаж/помещ./ ком. 9/XIV/1.</div>
+                </div>
+            </div>
+        </div>`;
+  }
+  setPaySystemId(value) {
+    this.paySystemId = value;
+  }
+
+  init(props) {
+    return new Promise((resolve, reject) => {
+      if (props && props.widgetCustomClass)
+        this.widgetCustomClass = props.widgetCustomClass;
+      if (props && props.widgetContainerNodeSelector)
+        this.widgetContainerNodeSelector = props.widgetContainerNodeSelector;
+      if (props && props.priceNodeSelector)
+        this.priceNodeSelector = props.priceNodeSelector;
+      if (props && props.containerNodeSelector)
+        this.containerNodeSelector = props.containerNodeSelector;
+      if (props && props.insertMethod) this.insertMethod = props.insertMethod;
+      if (props && props.type) this.type = props.type;
+      if (!this.initialized) {
+        this.initialized = true;
+        const self = this;
+
+        BX.ajax({
+          method: "GET",
+          dataType: "json",
+          url: this.widgetAjaxUrl,
+          onsuccess: BX.delegate(function (result) {
+            if (result && result.show_widget)
+              self.showWidget = result.show_widget === "1" ? true : false;
+            if (result && result.widget_css_class)
+              self.widgetCssClass = result.widget_css_class;
+            if (result && result.pay_system_id)
+              self.setPaySystemId(result.pay_system_id);
+            if (result && result.discount)
+              self.discount = result.discount === "1" ? true : false; //!_____ Заменить
+            resolve();
+          }),
+        });
+      }
+    });
+  }
+  remove() {
+    const containerNodes = document.querySelectorAll(
+      this.containerNodeSelector
+    );
+    if (containerNodes && containerNodes.length > 0) {
+      containerNodes.forEach((containerNode) => {
+        const widget = containerNode.querySelector(`.${this.widgetClass}`);
+        if (widget) {
+          widget.remove();
+        }
+      });
+    }
+  }
+  add(props) {
+    let totalPrice = 0;
+    if (props && props.totalPrice) totalPrice = props.totalPrice || 0;
+    if (this.showWidget && this.initialized) {
+      const itemNodes = document.querySelectorAll(this.containerNodeSelector);
+      this.canIRender = false;
+      if (itemNodes && itemNodes.length > 0) {
+        itemNodes.forEach((itemNode, index) => {
+          let price = this.roundSum(parseFloat(totalPrice));
+
+          if (!price && this.priceNodeSelector) {
+            const priceNode = itemNode.querySelector(this.priceNodeSelector);
+            if (priceNode) {
+              price = this.preparePrice(priceNode.textContent);
+            }
+          }
+          let widgetNode;
+          if (this.widgetContainerNodeSelector !== this.containerNodeSelector) {
+            widgetNode = itemNode.querySelector(
+              this.widgetContainerNodeSelector
+            );
+          } else {
+            widgetNode = itemNode;
+          }
+
+          const priceWithDelivery = parseFloat(price);
+          if (priceWithDelivery && priceWithDelivery <= 15000 && priceWithDelivery >= 300) {
+            const discount =
+              (this.discount && this.calculateDiscount(priceWithDelivery)) || 0;
+            let podeliPrice = priceWithDelivery - discount;
+            podeliPrice = this.roundSum(podeliPrice);
+            const payments = this.calculatePayments(podeliPrice);
+            const dates = [
+              "Сегодня",
+              this.beautyDate(this.addDays(14)),
+              this.beautyDate(this.addDays(28)),
+              this.beautyDate(this.addDays(42)),
+            ];
+
+            // -- Общие элементы
+            const logo = BX.create("div", {
+              attrs: {
+                className: "logo",
+              },
+              html: this.logoHtml,
+            });
+
+            const wrap = BX.create("div", {
+              attrs: {
+                className: "wrap",
+              },
+            });
+            const popUp = BX.create("div", {
+              attrs: {
+                className: "popup podeli",
+              },
+              html: this.popUpHtml,
+            });
+            const iconInfo = BX.create("div", {
+              attrs: {
+                className: "price__icon-info",
+              },
+            });
+            // -- Каталог
+            if (this.type === "catalog") {
+              iconInfo.classList.add("price_dates");
+              const priceRow = BX.create("div", {
+                attrs: {
+                  className: "price__row",
+                },
+                html: `${this.beautyPrice(payments[0])} ₽ х 4`,
+              });
+
+              BX.append(priceRow, wrap);
+              BX.append(iconInfo, logo);
+              BX.append(logo, wrap);
+            }
+
+            // -- Карточка товара
+            if (this.type === "item") {
+              const priceRow1 = BX.create("div", {
+                attrs: {
+                  className: "price__row",
+                },
+                html: this.discount
+                  ? `
+                    <div class="prices">
+                        <span>${this.beautyPrice(podeliPrice)} ₽</span>
+                        <p></p>
+                        <span class="totalPrice">${this.beautyPrice(
+                          priceWithDelivery
+                        )} ₽</span> 
+                        <div class="price__icon-percent"></div>
+                    </div>
+                    <div class="price__tooltip">
+                        Скидка ${discount} ₽<br />
+                        для новых клиентов Подели
+                    </div>
+                    <div class="logo">
+                        <div class="logo__description">оплата покупок<br/>по частям</div>
+                        ${this.logoHtml}
+                    </div>
+                  `
+                  : `<div class="prices">
+                        <span>${this.beautyPrice(podeliPrice)} ₽</span>
+                    </div>
+                    <div class="logo">
+                        <div class="logo__description">оплата покупок<br/>по частям</div>
+                        ${this.logoHtml}
+                    </div>`,
+              });
+              const priceRow2 = BX.create("div", {
+                attrs: {
+                  className: "price__row",
+                },
+                html: `<div class="price__date-list">
+                        <div class="price__date-item">
+                          <div class="price__date-item-line price__date-item-line--active"></div>
+                          <span class="price__date-title">${dates[0]}</span>
+                          <span class="price__date-price">${this.beautyPrice(
+                            payments[0]
+                          )} ₽</span>
+                        </div>
+                        <div class="price__date-item">
+                          <div class="price__date-item-line"></div>
+                          <span class="price__date-title">${dates[1]}</span>
+                          <span class="price__date-price">${this.beautyPrice(
+                            payments[1]
+                          )} ₽</span>
+                        </div>
+                        <div class="price__date-item">
+                          <div class="price__date-item-line"></div>
+                          <span class="price__date-title">${dates[2]}</span>
+                          <span class="price__date-price">${this.beautyPrice(
+                            payments[2]
+                          )} ₽</span>
+                        </div>
+                        <div class="price__date-item">
+                          <div class="price__date-item-line"></div>
+                          <span class="price__date-title">${dates[3]}</span>
+                          <span class="price__date-price">${this.beautyPrice(
+                            payments[3]
+                          )} ₽</span>
+                        </div>
+                      </div>`,
+              });
+              const priceText = BX.create("span", {
+                attrs: {
+                  className: "price__text",
+                },
+                html: "Без комиссий и переплат",
+              });
+              const priceRow3 = BX.create("div", {
+                attrs: {
+                  className: "price__row",
+                },
+                children: [priceText, iconInfo],
+              });
+              BX.append(priceRow2, wrap);
+              const price = BX.create("div", {
+                attrs: {
+                  className: "price",
+                },
+                children: [priceRow1, priceRow2, priceRow3],
+              });
+              BX.append(price, wrap);
+            }
+
+            // -- Чекаут
+            if (this.type === "checkout") {
+              if (BX.saleOrderAjax || (BX.Sale && BX.Sale.OrderAjaxComponent)) {
+                const bxSalesAjax = BX.saleOrderAjax.getData
+                  ? BX.saleOrderAjax
+                  : BX.Sale && BX.Sale.OrderAjaxComponent
+                  ? BX.Sale.OrderAjaxComponent
+                  : null;
+                if (bxSalesAjax) {
+                  const data = bxSalesAjax.getData();
+                  if (data && data.order && data.order.PAY_SYSTEM_ID)
+                    this.selectedPaySystemId = parseInt(
+                      data.order.PAY_SYSTEM_ID
+                    );
+                  if (this.selectedPaySystemId === this.paySystemId) {
+                    const priceRow1 = BX.create("div", {
+                      attrs: {
+                        className: "price__row",
+                      },
+                      html: this.discount
+                        ? `
+                     <div class="prices">
+                        <span>${this.beautyPrice(
+                          podeliPrice
+                        )} ₽</span> <!--podeliPrice-->
+                        <p></p>
+                        <span class="totalPrice">${this.beautyPrice(
+                          priceWithDelivery
+                        )} ₽</span> <!-- priceWithDelivery -->
+                      <div class="price__icon-percent"></div>
+                     </div>
+                    <div class="price__tooltip">
+                      Скидка ${discount} ₽<br/>
+                      для новых клиентов
+                    </div>
+                    <div class="logo">
+                    <div class="logo__description">оплата покупок<br/>по частям</div>
+                    ${this.logoHtml}
+                    </div>`
+                        : `<div class="prices"><span>${this.beautyPrice(
+                            podeliPrice
+                          )} ₽</span></div>
+                          <div class="logo">
+                          <div class="logo__description">оплата покупок<br/>по частям</div>
+                          ${this.logoHtml}
+                          </div>`,
+                    });
+                    const priceText = BX.create("span", {
+                      attrs: {
+                        className: "price__text",
+                      },
+                      html: "Без комиссий и переплат",
+                    });
+                    const priceRow3 = BX.create("div", {
+                      attrs: {
+                        className: "price__row",
+                      },
+                      children: [priceText, iconInfo],
+                    });
+                    const priceRow2 = BX.create("div", {
+                      attrs: {
+                        className: "price__row",
+                      },
+                      html: `<div class="price__date-list">
+                        <div class="price__date-item">
+                          <div class="price__date-item-line price__date-item-line--active"></div>
+                          <span class="price__date-title">${dates[0]}</span>
+                          <span class="price__date-price">${this.beautyPrice(
+                            payments[0]
+                          )} ₽</span>
+                        </div>
+                        <div class="price__date-item">
+                          <div class="price__date-item-line"></div>
+                          <span class="price__date-title">${dates[1]}</span>
+                          <span class="price__date-price">${this.beautyPrice(
+                            payments[1]
+                          )} ₽</span>
+                        </div>
+                        <div class="price__date-item">
+                          <div class="price__date-item-line"></div>
+                          <span class="price__date-title">${dates[2]}</span>
+                          <span class="price__date-price">${this.beautyPrice(
+                            payments[2]
+                          )} ₽</span>
+                        </div>
+                        <div class="price__date-item">
+                          <div class="price__date-item-line"></div>
+                          <span class="price__date-title">${dates[3]}</span>
+                          <span class="price__date-price">${this.beautyPrice(
+                            payments[3]
+                          )} ₽</span>
+                        </div>
+                      </div>`,
+                    });
+
+                    const price = BX.create("div", {
+                      attrs: {
+                        className: "price",
+                      },
+                      children: [priceRow1, priceRow2, priceRow3],
+                    });
+                    BX.append(price, wrap);
+                    this.canIRender = true;
+                    if (window.podeliInteval) {
+                      const { podeliInteval } = window;
+                      clearInterval(podeliInteval);
+                    }
+                  }
+                }
+              }
+            }
+            if (this.type !== "checkout") {
+              this.canIRender = true;
+            }
+
+            if (this.canIRender) {
+              const widget = BX.create("div", {
+                attrs: {
+                  className: `${this.widgetClass} ${this.widgetCustomClass} ${this.type}`,
+                },
+                children: [wrap],
+              });
+              if (itemNode.querySelector(`.${this.widgetClass}`)) {
+                itemNode.querySelector(`.${this.widgetClass}`).remove();
+              }
+              if (this.insertMethod === "after") {
+                BX.insertAfter(widget, widgetNode);
+              } else if (this.insertMethod === "before") {
+                BX.insertBefore(widget, widgetNode);
+              } else if (this.insertMethod === "replace") {
+                widgetNode.innerHTML = "";
+                BX.append(widget, widgetNode);
+              } else if (this.insertMethod === "append") {
+                BX.append(widget, widgetNode);
+              }
+              const body = document.querySelector("body");
+              if (!body.querySelector(".popup.podeli")) {
+                BX.append(popUp, body);
+              }
+
+              const tooltip = widget.querySelector(".price__tooltip");
+              const percent = widget.querySelector(".price__icon-percent");
+              if (percent) {
+                percent.addEventListener("mouseenter", () => {
+                  if (tooltip) {
+                    tooltip.classList.add("price__tooltip--active");
+                  }
+                });
+
+                percent.addEventListener("mouseleave", () => {
+                  if (tooltip) {
+                    tooltip.classList.remove("price__tooltip--active");
+                  }
+                });
+              }
+
+              // const iconInfo = widget.querySelector(
+              //   ".price__icon-info.price_dates"
+              // );
+              const popup = body.querySelector(".popup.podeli");
+              const closeWidget = popup.querySelector(".close_widget");
+              if (iconInfo) {
+                iconInfo.addEventListener("click", function (e) {
+                  popup.classList.toggle("_active");
+                });
+                popup.addEventListener("click", function (e) {
+                  if (!e.target.closest(".popup__content")) {
+                    popup.classList.remove("_active");
+                  }
+                });
+                closeWidget.addEventListener("click", function (e) {
+                  //   if (!e.target.closest(".popup__content")) {
+                  popup.classList.remove("_active");
+                  // }
+                });
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+  calculateDiscount(totalPrice) {
+    if (totalPrice <= 2000) {
+      return 100;
+    } else if (totalPrice > 2000 && totalPrice <= 5000) {
+      return 200;
+    } else if (totalPrice > 5000 && totalPrice <= 10000) {
+      return 300;
+    } else if (totalPrice > 10000) {
+      return 500;
+    }
+  }
+  preparePrice(price) {
+    let numberPrice = 0;
+    if (price && price.length > 0) {
+      price = price.replace(/ /g, "");
+      price = price.replace(/&nbsp;/g, "");
+      price = price.replace(/ /g, "");
+      price = price.replace(/,/g, ".");
+      price = price.replace(/руб./g, "");
+      price = price.replace(/руб/g, "");
+      price = price.replace(/р./g, "");
+      price = price.replace(/p./g, "");
+      price = price.replace(/р/g, "");
+      price = price.replace(/₽/g, "");
+      numberPrice = Number(price);
+    }
+    return numberPrice;
+  }
+  roundSum(sum) {
+    let res = (sum + "").split(".");
+    if (res.length === 2 && (res[1].length === 1 || res[1].length > 2)) {
+      sum = sum.toFixed(2);
+    }
+    return sum;
+  }
+  beautyPrice(price) {
+    let textPrice = price + "";
+    const arrPrice = textPrice.split(".");
+    let intPart = arrPrice[0];
+    const floatPart = arrPrice[1] || "";
+    const separator =
+      (floatPart !== "00" && floatPart !== "0" && floatPart !== "" && ",") ||
+      "";
+    if (arrPrice[0].length > 3) {
+      const firstPart = arrPrice[0].substring(0, arrPrice[0].length - 3);
+      const secondPart = arrPrice[0].substring(arrPrice[0].length - 3);
+      intPart = `${firstPart} ${secondPart}`;
+    }
+    return `${intPart}${separator}${floatPart}`;
+  }
+  calculatePayments(totalPrice) {
+    let quarterPrice = totalPrice / 4;
+    quarterPrice = this.roundSum(quarterPrice);
+    let quarterPrice4 = totalPrice - 3 * quarterPrice;
+    quarterPrice4 = this.roundSum(quarterPrice4);
+    return [quarterPrice, quarterPrice, quarterPrice, quarterPrice4];
+  }
+  addDays(days) {
+    var result = new Date();
+    var today = new Date();
+    result.setDate(today.getDate() + days);
+    return result;
+  }
+  beautyDate(date) {
+    const months = [
+      "января",
+      "февраля",
+      "марта",
+      "апреля",
+      "мая",
+      "июня",
+      "июля",
+      "августа",
+      "сентября",
+      "октября",
+      "ноября",
+      "декабря",
+    ];
+    return ("0" + date.getDate()).slice(-2) + " " + months[date.getMonth()];
+  }
+}
+//Определение экземпляра класса
+const podeli = new PodeliWidget();
+BX.ready(function () {
+  const isItem = !!document.querySelector("#podeli-product-container");
+  const isCatalog = !!document.querySelector(".catalog-section");
+  const isCheckout = !!document.querySelector("#bx-soa-paysystem");
+
+  //Делаем проверки на наличие элементов в шаблоне, чтобы понять, какой виджет рендерить
+
+  if (isCheckout) {
+    //Инициализируем виджет для страницы Оформления заказа
+    podeli.init({
+        type: "item", //checkout
+        priceNodeSelector: ".order_total-price_row .order_total-sum",
+        containerNodeSelector: "#bx-soa-paysystem",
+        widgetContainerNodeSelector: "#podeli-product-container",
+        insertMethod: "append",
+        widgetCustomClass: "mid",
+    })
+      .then(() => {
+        setTimeout(() => {
+          podeli.add();
+        }, 1000);
+      });
+	  
+    /*const payNode = document.querySelector("#bx-soa-paysystem");
+    function startInteval() {
+      window.podeliInteval = setInterval(function () {
+        if (payNode.classList.contains("bx-selected")) {
+          podeli.add();
+        }
+      }, 3000);
+    }
+    startInteval();
+    BX.addCustomEvent("onAjaxSuccess", function (data, method) {
+      if (!method || (method && method.url !== podeli.widgetAjaxUrl)) {
+        if (payNode.classList.contains("bx-selected")) {
+          if (window.podeliInteval) {
+            clearInterval(window.podeliInteval);
+          }
+          podeli.add();
+        } else {
+          if (window.podeliInteval) {
+            clearInterval(window.podeliInteval);
+          }
+          startInteval();
+        }
+      }
+    });*/
+	
+  } else if (isItem) {
+    //Инициализируем виджет для страницы Карточки товара
+    podeli
+      .init({
+        type: "item", //catalog || item || checkout
+        priceNodeSelector: ".product-item-price-current .cur",
+        containerNodeSelector: ".product-item",
+        widgetContainerNodeSelector: "#podeli-product-container",
+        insertMethod: "append",
+        widgetCustomClass: "mid",
+      })
+      .then(() => {
+        setTimeout(() => {
+          podeli.add();
+        }, 1000);
+      });
+  } else if (isCatalog) {
+    //Инициализируем виджет для страницы Каталога
+    podeli
+      .init({
+        type: "catalog", //catalog || item || checkout
+        priceNodeSelector: ".product-item-price-current",
+        containerNodeSelector: ".product-item",
+        widgetContainerNodeSelector: ".product-item-price-container",
+        insertMethod: "after",
+      })
+      .then(() => {
+        setTimeout(() => {
+          podeli.add();
+        }, 1000);
+      });
+  }
+});
+
+// podeli.init({
+//   containerNodeSelector: "#bx-soa-order-form", // - селектор контейнера, в котором находятся элемент с ценой, а также в котором будет находиться виджет. Если виджет 1 на странице, то контейнером моджет быть body или вся страница. Если вилдетов несколько, как например, в каталоге товаров, то тут следует указать селектор контейнер каждой карточки. Обязательный параметр.
+//   widgetContainerNodeSelector: "#bx-soa-paysystem .bx-soa-pp-desc-container", // - селектор контейнера, куда будет рендериться виджет. Обязательный параметр.
+//   insertMethod: "append", // - способ вставки виджета относительно widgetContainerNodeSelector - append (добавяет элемент внутрь контейнера), replace (добавяет элемент внутрь контейнера, предварительно удалив содержимое контейнера), before (вставляет виджет перед контейнером), after (вставляет виджет после контейнера)
+//   type: "checkout", // - тип виджета, примимает одно из 3 трех значений catalog (каталог товаров, маленький виджет с лого и ценой x4), item (карточка товара), checkout (страница оформления заказа)
+//   priceNodeSelector: ".bx-soa-cart-total-line-total .bx-soa-cart-d", // - селектор, указывающий на элемент, в котором находится цена
+// });
